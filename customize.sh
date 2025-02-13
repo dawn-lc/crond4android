@@ -1,31 +1,40 @@
 #!/system/bin/sh
 if [ "$BOOTMODE" != true ]; then
-  ui_print "-----------------------------------------------------------"
-  ui_print "! Please install in Magisk Manager or KernelSU Manager or APatch Manager"
-  ui_print "! Install from recovery is NOT supported"
-  abort "-----------------------------------------------------------"
+	ui_print "-----------------------------------------------------------"
+	ui_print "! Please install in Magisk Manager or KernelSU Manager or APatch Manager"
+	ui_print "! Install from recovery is NOT supported"
+	abort	 "-----------------------------------------------------------"
 fi
-cd ${MODPATH}
-cronDataDir='/data/adb/crond'
-if [ ! -d "${cronDataDir}" ]; then
-  ui_print "- Creating ${cronDataDir}"
-  mkdir -p "${cronDataDir}" && touch "${cronDataDir}/root"
+
+crondDataDir="/data/adb/crond"
+systemBinDir="${MODPATH}/system/xbin"
+crontabBinPath="${systemBinDir}/crontab"
+
+if [ ! -d "${crondDataDir}" ]; then
+	ui_print "- Creating crond data path"
+	mkdir -p "${crondDataDir}"
+fi
+if [ ! -f "${crondDataDir}/root" ]; then
+	ui_print "- Creating crond data"
+	touch "${crondDataDir}/root"
 fi
 
 ui_print "- Installing crontab command"
-mkdir -p "${MODPATH}/system/xbin"
+if [ ! -d "${systemBinDir}" ]; then
+	mkdir -p "${systemBinDir}"
+fi
 {
-  echo "#!/system/bin/sh"
-  if [ "$KSU" = true ]; then
-    echo "/data/adb/ksu/bin/busybox crontab -c '${cronDataDir}'"' $@'
-  elif [ "$APATCH" = true ]; then
-    echo "/data/adb/ap/bin/busybox crontab -c '${cronDataDir}'"' $@'
-  else
-    echo "/data/adb/magisk/busybox crontab -c '${cronDataDir}'"' $@'
-  fi
-} > "${MODPATH}/system/xbin/crontab"
+	echo "#!/system/bin/sh"
+	if [ "$KSU" = true ]; then
+		echo -n "/data/adb/ksu/bin/busybox crontab -c ${crondDataDir} \$@"
+	elif [ "$APATCH" = true ]; then
+		echo -n "/data/adb/ap/bin/busybox crontab -c ${crondDataDir} \$@"
+	else
+		echo -n "/data/adb/magisk/busybox crontab -c ${crondDataDir} \$@"
+	fi
+} > ${crontabBinPath}
 
 ui_print "- Setting permissions"
-set_perm "${MODPATH}/system/xbin/crontab" 0 0 0755
+set_perm ${crontabBinPath} 0 0 0755
 set_perm "${MODPATH}/service.sh" 0 0 0755
 set_perm "${MODPATH}/uninstall.sh" 0 0 0755
